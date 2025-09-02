@@ -1,0 +1,211 @@
+import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
+import { privateProcedure, publicProcedure, router } from "./trpc";
+import { TRPCError } from "@trpc/server";
+import { db } from "../db";
+import z from "zod";
+import { INFINITE_QUERY_LIMIT } from "@/components/chat/ChatContext";
+import { absoluteUrl } from "@/lib/utils";
+import { getUserSubscriptionPlan, stripe } from "@/lib/stripe";
+import { PLANS } from "../config/stripe";
+export const appRouter = router({
+  authCallback: publicProcedure.query(async () => {
+    const { getUser } = getKindeServerSession();
+    const user = await getUser();
+    if (!user?.id || !user.email) {
+      throw new TRPCError({ code: "UNAUTHORIZED" });
+    }
+
+    // check if the user is in the database
+    const dbUser = await db.user.findFirst({
+      where: {
+        id: user.id,
+      },
+    });
+
+    if (!dbUser) {
+      // create user in db
+      await db.user.create({
+        data: {
+          id: user.id,
+          email: user.email,
+        },
+      });
+    }
+
+    return { success: true };
+  }),
+  getFile: privateProcedure
+    .input(z.object({ key: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const { userId } = ctx;
+      const file = await db.file.findFirst({
+        where: {
+          userId,
+          key: input.key,
+        },
+      });
+
+      if (!file) throw new TRPCError({ code: "NOT_FOUND" });
+
+      return file;
+    }),
+  getFileMessage: privateProcedure
+    .input(
+      z.object({
+        limit: z.number().min(1).max(100).nullish(),
+        cursor: z.string().nullish(),
+        fileId: z.string(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const { userId } = ctx;
+      const { fileId, cursor } = input;
+      const limit = input.limit ?? INFINITE_QUERY_LIMIT;
+
+      const file = await db.file.findFirst({
+        where: {
+          id: fileId,
+          userId,
+        },
+      });
+
+      if (!file) throw new TRPCError({ code: "NOT_FOUND" });
+
+      const messages = await db.message.findMany({
+        take: limit + 1,
+        where: {
+          fileId,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        cursor: cursor ? { id: cursor } : undefined,
+        select: {
+          id: true,
+          isUserMessage: true,
+          createdAt: true,
+          text: true,
+        },
+      });
+      let nextCursor: typeof cursor | undefined = undefined;
+      if (messages.length > limit) {
+        const nextItem = messages.pop();
+        nextCursor = nextItem?.id;
+      }
+
+      return {
+        messages,
+        nextCursor,
+      };
+    }),
+  getFileUploadStatus: privateProcedure
+    .input(z.object({ fileId: z.string() }))
+    .query(async ({ input, ctx }) => {
+      const file = await db.file.findFirst({
+        where: {
+          id: input.fileId,
+          userId: ctx.userId,
+        },
+      });
+
+      if (!file) return { status: "PENDING" as const };
+      console.log(file.uploadStatus);
+
+      return { status: file.uploadStatus };
+    }),
+  getUserFiles: privateProcedure.query(async ({ ctx }) => {
+    const { userId } = ctx;
+
+    return await db.file.findMany({
+      where: {
+        userId,
+      },
+    });
+  }),
+  deleteFile: privateProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const { userId } = ctx;
+
+      const file = await db.file.findFirst({
+        where: {
+          id: input.id,
+          userId,
+        },
+      });
+
+      if (!file) throw new TRPCError({ code: "NOT_FOUND" });
+
+      await db.file.delete({
+        where: {
+          id: input.id,
+        },
+      });
+
+      return file;
+    }),
+  createStripeSession: privateProcedure.mutation(async ({ ctx }) => {
+  const { userId } = ctx;
+  const billingUrl = absoluteUrl("/dashboard/billing");
+
+  if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
+
+  const dbUser = await db.user.findUnique({
+    where: {
+      id: userId,
+    },
+  });
+
+  if (!dbUser) throw new TRPCError({ code: "UNAUTHORIZED" });
+
+  const subscriptionPlan = await getUserSubscriptionPlan();
+
+  if (subscriptionPlan.isSubscribed && dbUser.stripeCustomerId) {
+    const stripeSession = await stripe.billingPortal.sessions.create({
+      customer: dbUser.stripeCustomerId,
+      return_url: billingUrl,
+    });
+
+    return { url: stripeSession.url };
+  }
+
+  // Get the Pro plan and correct price ID
+  const proPlan = PLANS.find((plan) => plan.name === "Pro");
+  
+  // Use 'production' instead of 'prod' to match your PLANS structure
+  const priceId = process.env.NODE_ENV === 'production' 
+    ? proPlan?.price?.priceIds?.production 
+    : proPlan?.price?.priceIds?.test;
+
+  if (!priceId) {
+    throw new TRPCError({ 
+      code: "INTERNAL_SERVER_ERROR", 
+      message: `Price ID not found for Pro plan in ${process.env.NODE_ENV} environment` 
+    });
+  }
+
+  console.log('Using price ID:', priceId); // Debug log
+
+  const stripeSession = await stripe.checkout.sessions.create({
+    success_url: billingUrl,
+    cancel_url: billingUrl,
+    payment_method_types: ["card"],
+    mode: "subscription",
+    customer_email: dbUser.email,
+    billing_address_collection: "auto",
+    line_items: [
+      {
+        price: priceId, // This should now be your actual Stripe price ID
+        quantity: 1,
+      },
+    ],
+    metadata: {
+      userId,
+    },
+  });
+
+  return { url: stripeSession.url };
+})
+});
+export type AppRouter = typeof appRouter;
+    
