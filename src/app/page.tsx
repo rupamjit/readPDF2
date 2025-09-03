@@ -29,7 +29,7 @@ export default function Home() {
             size: 'lg',
             className: 'mt-5',
           })}
-          href='/api/auth/register'
+         href='/api/auth/register?post_login_redirect_url=/auth-callback'
           target='_blank'>
           Get started{' '}
           <ArrowRight className='ml-2 h-5 w-5' />

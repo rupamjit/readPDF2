@@ -84,7 +84,7 @@ const MobileNav = ({ isAuth }: { isAuth: boolean }) => {
                 <li>
                   <Link
                     className='flex items-center w-full font-semibold'
-                    href='/sign-out'>
+                    href='/api/auth/logout?post_logout_redirect_url=/'>
                     Sign out
                   </Link>
                 </li>
