@@ -1,6 +1,3 @@
-
-
-
 import { buttonVariants } from '@/components/ui/button'
 import {
   Tooltip,
@@ -217,7 +214,7 @@ const Page = async() => {
                       {plan === 'Free' ? (
                         <Link
                           href={
-                            user ? '/dashboard' : '/api/auth/login'
+                            user ? '/dashboard' : '/api/auth/login?afterLogin'
                           }
                           className={buttonVariants({
                             className: 'w-full',
