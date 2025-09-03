@@ -146,7 +146,7 @@ export const appRouter = router({
     }),
   createStripeSession: privateProcedure.mutation(async ({ ctx }) => {
   const { userId } = ctx;
-  const billingUrl = absoluteUrl("/dashboard/billing");
+  const billingUrl ="https://read-pdf-2.vercel.app/dashboard/billing";
 
   if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
 
