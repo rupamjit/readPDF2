@@ -97,7 +97,7 @@ const MobileNav = ({ isAuth }: {isAuth:boolean}) => {
                       closeOnCurrent('/pricing')
                     }
                     className='flex items-center w-full font-semibold'
-                    href='/pricing'>
+                    href='/dashboard/billing'>
                     Pricing
                   </Link>
                 </li>
