@@ -1,3 +1,4 @@
+
 import { getUserSubscriptionPlan } from '@/lib/stripe'
 import {
   DropdownMenu,
@@ -12,7 +13,9 @@ import Image from 'next/image'
 import { Icons } from './Icons'
 import Link from 'next/link'
 import { Gem } from 'lucide-react'
-import { LogoutLink } from '@kinde-oss/kinde-auth-nextjs/server'
+import LogOutLink from './LogOutLink'
+
+
 
 interface UserAccountNavProps {
   email: string | undefined
@@ -90,8 +93,8 @@ const UserAccountNav = async ({
 
         <DropdownMenuSeparator />
 
-        <DropdownMenuItem className='cursor-pointer'>
-            <LogoutLink>Log out</LogoutLink>
+        <DropdownMenuItem asChild className='cursor-pointer'>
+           <LogOutLink/>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
