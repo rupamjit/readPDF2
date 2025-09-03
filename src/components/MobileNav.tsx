@@ -4,8 +4,18 @@ import { ArrowRight, Menu } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import UserAccountNav from './UserAccountNav'
 
-const MobileNav = ({ isAuth }: { isAuth: boolean }) => {
+
+interface MobileNavBar {
+  isAuth:boolean
+  email: string | undefined
+  name: string
+  imageUrl: string
+}
+
+
+const MobileNav = ({ isAuth,name,email,imageUrl }: MobileNavBar) => {
   const [isOpen, setOpen] = useState<boolean>(false)
 
   const toggleOpen = () => setOpen((prev) => !prev)
@@ -97,6 +107,9 @@ const MobileNav = ({ isAuth }: { isAuth: boolean }) => {
                     href='/pricing'>
                     Pricing
                   </Link>
+                </li>
+                <li>
+                  <UserAccountNav  email={email} name={name} imageUrl={imageUrl}/>
                 </li>
               </>
             )}
