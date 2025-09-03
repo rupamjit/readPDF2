@@ -27,13 +27,7 @@ const Navbar = async () => {
             <span>ReadPDF.</span>
           </Link>
 
-          <MobileNav isAuth={!!user}  name={
-                    !user?.given_name || !user.family_name
-                      ? 'Your Account'
-                      : `${user.given_name} ${user.family_name}`
-                  }
-                  email={user?.email ?? ''}
-                  imageUrl={user?.picture ?? ''}/>
+          <MobileNav isAuth={!!user} />
 
           <div className='hidden items-center space-x-4 sm:flex'>
             {!user ? (
