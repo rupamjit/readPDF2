@@ -169,13 +169,9 @@ export const appRouter = router({
     return { url: stripeSession.url };
   }
 
-  // Get the Pro plan and correct price ID
   const proPlan = PLANS.find((plan) => plan.name === "Pro");
   
-  // Use 'production' instead of 'prod' to match your PLANS structure
-  const priceId = process.env.NODE_ENV === 'production' 
-    ? proPlan?.price?.priceIds?.production 
-    : proPlan?.price?.priceIds?.test;
+  const priceId = proPlan?.price?.priceIds?.production 
 
   if (!priceId) {
     throw new TRPCError({ 
@@ -184,7 +180,7 @@ export const appRouter = router({
     });
   }
 
-  console.log('Using price ID:', priceId); // Debug log
+  console.log('Using price ID:', priceId);
 
   const stripeSession = await stripe.checkout.sessions.create({
     success_url: billingUrl,
@@ -195,7 +191,7 @@ export const appRouter = router({
     billing_address_collection: "auto",
     line_items: [
       {
-        price: priceId, // This should now be your actual Stripe price ID
+        price: priceId, 
         quantity: 1,
       },
     ],
