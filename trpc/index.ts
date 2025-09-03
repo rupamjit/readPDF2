@@ -150,7 +150,7 @@ export const appRouter = router({
     async ({ ctx }) => {
       const { userId } = ctx
 
-      const billingUrl = absoluteUrl('/dashboard/billing')
+         const billingUrl = 'https://read-pdf-2.vercel.app/dashboard'
 
       if (!userId)
         throw new TRPCError({ code: 'UNAUTHORIZED' })
@@ -199,7 +199,6 @@ export const appRouter = router({
             userId: userId,
           },
         })
-
       return { url: stripeSession.url }
     }
   ),
