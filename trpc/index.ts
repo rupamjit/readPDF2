@@ -144,64 +144,66 @@ export const appRouter = router({
 
       return file;
     }),
-  createStripeSession: privateProcedure.mutation(async ({ ctx }) => {
-  const { userId } = ctx;
-  const billingUrl ="https://read-pdf-2.vercel.app/dashboard/billing";
 
-  if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
 
-  const dbUser = await db.user.findUnique({
-    where: {
-      id: userId,
-    },
-  });
+  createStripeSession: privateProcedure.mutation(
+    async ({ ctx }) => {
+      const { userId } = ctx
 
-  if (!dbUser) throw new TRPCError({ code: "UNAUTHORIZED" });
+      const billingUrl = absoluteUrl('/dashboard/billing')
 
-  const subscriptionPlan = await getUserSubscriptionPlan();
+      if (!userId)
+        throw new TRPCError({ code: 'UNAUTHORIZED' })
 
-  if (subscriptionPlan.isSubscribed && dbUser.stripeCustomerId) {
-    const stripeSession = await stripe.billingPortal.sessions.create({
-      customer: dbUser.stripeCustomerId,
-      return_url: billingUrl,
-    });
+      const dbUser = await db.user.findFirst({
+        where: {
+          id: userId,
+        },
+      })
 
-    return { url: stripeSession.url };
-  }
+      if (!dbUser)
+        throw new TRPCError({ code: 'UNAUTHORIZED' })
 
-  const proPlan = PLANS.find((plan) => plan.name === "Pro");
-  
-  const priceId = proPlan?.price?.priceIds?.production 
+      const subscriptionPlan =
+        await getUserSubscriptionPlan()
 
-  if (!priceId) {
-    throw new TRPCError({ 
-      code: "INTERNAL_SERVER_ERROR", 
-      message: `Price ID not found for Pro plan in ${process.env.NODE_ENV} environment` 
-    });
-  }
+      if (
+        subscriptionPlan.isSubscribed &&
+        dbUser.stripeCustomerId
+      ) {
+        const stripeSession =
+          await stripe.billingPortal.sessions.create({
+            customer: dbUser.stripeCustomerId,
+            return_url: billingUrl,
+          })
 
-  console.log('Using price ID:', priceId);
+        return { url: stripeSession.url }
+      }
 
-  const stripeSession = await stripe.checkout.sessions.create({
-    success_url: billingUrl,
-    cancel_url: billingUrl,
-    payment_method_types: ["card"],
-    mode: "subscription",
-    customer_email: dbUser.email,
-    billing_address_collection: "auto",
-    line_items: [
-      {
-        price: priceId, 
-        quantity: 1,
-      },
-    ],
-    metadata: {
-      userId,
-    },
-  });
+      const stripeSession =
+        await stripe.checkout.sessions.create({
+          success_url: billingUrl,
+          cancel_url: billingUrl,
+          payment_method_types: ['card', 'paypal'],
+          mode: 'subscription',
+          billing_address_collection: 'auto',
+          line_items: [
+            {
+              price: PLANS.find(
+                (plan) => plan.name === 'Pro'
+              )?.price.priceIds.test,
+              quantity: 1,
+            },
+          ],
+          metadata: {
+            userId: userId,
+          },
+        })
 
-  return { url: stripeSession.url };
-})
+      return { url: stripeSession.url }
+    }
+  ),
+
 });
 export type AppRouter = typeof appRouter;
     
