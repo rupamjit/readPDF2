@@ -40,14 +40,14 @@ const Navbar = async () => {
                   })}>
                   Pricing
                 </Link>
-                <LoginLink
+                <LoginLink postLoginRedirectURL='/auth-callback'
                   className={buttonVariants({
                     variant: 'ghost',
                     size: 'sm',
                   })}>
                   Sign in
                 </LoginLink>
-                <RegisterLink
+                <RegisterLink postLoginRedirectURL='/auth-callback'
                   className={buttonVariants({
                     size: 'sm',
                   })}>
