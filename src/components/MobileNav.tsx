@@ -98,7 +98,7 @@ const MobileNav = ({ isAuth }: {isAuth:boolean}) => {
                     }
                     className='flex items-center w-full font-semibold'
                     href='/dashboard/billing'>
-                    Pricing
+                    Billing
                   </Link>
                 </li>
               </>
