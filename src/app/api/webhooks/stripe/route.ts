@@ -3,6 +3,13 @@ import { stripe } from "@/lib/stripe"
 import { headers } from "next/headers"
 import Stripe from "stripe"
 import { db } from "../../../../../db"
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
 export async function POST(request: Request) {
   const body = await request.text()
   const signature = (await headers()).get('Stripe-Signature') ?? ''
